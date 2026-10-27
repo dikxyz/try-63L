@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amanah-motor-deploy
+  labels:
+    app: amanah-motor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: amanah-motor
+  template:
+    metadata:
+      labels:
+        app: amanah-motor
+    spec:
+      containers:
+      - name: web-container
+        image: IMAGE_PLACEHOLDER
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: amanah-motor-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: amanah-motor
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: amanah-motor-ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: amanah-motor-svc
+            port:
+              number: 80
