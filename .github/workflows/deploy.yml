@@ -1,18 +1,14 @@
-name: Deploy to ACK
+name: CI/CD to Alibaba Cloud ACK
 
 on:
   push:
     branches:
-      - main
-
-env:
-  NAMESPACE: gandes-test
-  REPO_NAME: try-gel
-  IMAGE_TAG: ${{ github.sha }}
+      - main  # Atau ganti dengan nama branch utama Anda (misal: master)
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout Code
       uses: actions/checkout@v3
@@ -20,24 +16,27 @@ jobs:
     - name: Login to Alibaba Cloud ACR
       uses: docker/login-action@v2
       with:
-        registry: ${{ secrets.ACR_REGISTRY }}
+        registry: registry-intl.ap-southeast-5.aliyuncs.com
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
     - name: Build and Push Docker Image
-      run: |
-        IMAGE_URI="${{ secrets.ACR_REGISTRY }}/$NAMESPACE/$REPO_NAME:$IMAGE_TAG"
-        docker build -t $IMAGE_URI .
-        docker push $IMAGE_URI
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.sha }}
 
-    - name: Set up Kubeconfig
-      run: |
-        mkdir -p ~/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
-        chmod 600 ~/.kube/config
+    - name: Set up Kubectl
+      uses: azure/k8s-set-context@v3
+      with:
+        method: kubeconfig
+        kubeconfig: ${{ secrets.KUBE_CONFIG }}
 
-    - name: Deploy to ACK
+    - name: Update Deployment Image in K8s
       run: |
-        IMAGE_URI="${{ secrets.ACR_REGISTRY }}/$NAMESPACE/$REPO_NAME:$IMAGE_TAG"
-        sed -i "s|IMAGE_PLACEHOLDER|$IMAGE_URI|g" k8s/deployment.yaml
-        kubectl apply -f k8s/deployment.yaml
+        # Mengganti tag image di deployment.yaml secara otomatis sesuai commit SHA terbaru
+        sed -i 's|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:.*|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.sha }}|g' k8s/deployment.yaml
+        
+        # Terapkan perubahan ke cluster ACK
+        kubectl apply -f k8s/deployment.yaml --validate=false
