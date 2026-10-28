@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: try-gel-deploy
+  namespace: try-gel
   labels:
     app: try-gel
 spec:
@@ -24,6 +25,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: try-gel-svc
+  namespace: try-gel
 spec:
   type: ClusterIP
   selector:
@@ -37,16 +39,25 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: try-gel-ingress
+  namespace: try-gel
   annotations:
     kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80},{"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "true"
 spec:
+  ingressClassName: alb
+  tls:
+    - hosts:
+        - www.domain-anda.com   # Ganti dengan domain Anda yang sebenarnya
+      secretName: letsencrypt-tls # Mengambil dari Secret lokal yang baru dibuat
   rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: try-gel-svc
-            port:
-              number: 80
+    - host: www.domain-anda.com # Ganti dengan domain Anda yang sebenarnya
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: try-gel-svc
+                port:
+                  number: 80
