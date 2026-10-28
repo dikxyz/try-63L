@@ -48,10 +48,10 @@ spec:
   ingressClassName: alb
   tls:
     - hosts:
-        - www.domain-anda.com   # Ganti dengan domain Anda yang sebenarnya
+        - trygelcicd.cloudops.web.id   # Ganti dengan domain Anda yang sebenarnya
       secretName: letsencrypt-tls # Mengambil dari Secret lokal yang baru dibuat
   rules:
-    - host: www.domain-anda.com # Ganti dengan domain Anda yang sebenarnya
+    - host: trygelcicd.cloudops.web.id # Ganti dengan domain Anda yang sebenarnya
       http:
         paths:
           - path: /
