@@ -1,49 +1,33 @@
-name: CI/CD to Alibaba Cloud ACR & ACK new
+name: CI/CD to Alibaba Cloud ACK
+
 
 on:
   push:
-    branches: ["main"] # Sesuaikan branch lu
-
-# 1. Sesuaikan REGISTRY dan IMAGE_NAME ke Alibaba Cloud lu
-env:
-  REGISTRY: registry-intl.ap-southeast-5.aliyuncs.com
-  IMAGE_NAME: gandes-test/try-gel
+    tags:
+      - '*' 
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    - name: Checkout Code
+      uses: actions/checkout@v3
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    # 2. Ganti kredensial ke rahasia ACR lu
     - name: Login to Alibaba Cloud ACR
-      uses: docker/login-action@v3
+      uses: docker/login-action@v2
       with:
-        registry: ${{ env.REGISTRY }}
+        registry: registry-intl.ap-southeast-5.aliyuncs.com
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: Get short Git commit SHA
-      id: vars
-      run: echo "COMMIT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-
-    # 3. Tambahkan provenance: false biar size image terbaca di ACR
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
+    - name: Build and Push Docker Image
+      uses: docker/build-push-action@v4
       with:
         context: .
         push: true
-        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_SHA }}
+        tags: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.ref_name }}
         provenance: false
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-    # 4. Tambahkan kembali step deployment ke ACK lu (Pakai variabel baru)
     - name: Set up Kubectl
       uses: azure/k8s-set-context@v3
       with:
@@ -52,7 +36,8 @@ jobs:
 
     - name: Update Deployment Image in K8s
       run: |
-        kubectl apply -f k8s/deployment.yaml --validate=false
         
-        # Deploy otomatis pakai tag 7 digit SHA
-        kubectl set image deployment/try-gel-deploy web-container=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.COMMIT_SHA }} -n try-gel
+        sed -i 's|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:.*|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.ref_name }}|g' k8s/deployment.yaml
+        
+        
+        kubectl apply -f k8s/deployment.yaml --validate=false
