@@ -1,9 +1,10 @@
 name: CI/CD to Alibaba Cloud ACK
 
+# 1️⃣ GANTI DI SINI: Ubah dari "branches: - main" menjadi "tags: - '*'"
 on:
   push:
-    branches:
-      - main  # Atau ganti dengan nama branch utama Anda (misal: master)
+    tags:
+      - '*' 
 
 jobs:
   build-and-deploy:
@@ -25,7 +26,8 @@ jobs:
       with:
         context: .
         push: true
-        tags: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.sha }}
+        # 2️⃣ GANTI DI SINI: Ubah ${{ github.sha }} jadi ${{ github.ref_name }}
+        tags: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.ref_name }}
 
     - name: Set up Kubectl
       uses: azure/k8s-set-context@v3
@@ -35,8 +37,8 @@ jobs:
 
     - name: Update Deployment Image in K8s
       run: |
-        # Mengganti tag image di deployment.yaml secara otomatis sesuai commit SHA terbaru
-        sed -i 's|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:.*|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.sha }}|g' k8s/deployment.yaml
+        # 3️⃣ GANTI DI SINI: Ubah ${{ github.sha }} jadi ${{ github.ref_name }}
+        sed -i 's|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:.*|image: registry-intl.ap-southeast-5.aliyuncs.com/gandes-test/try-gel:${{ github.ref_name }}|g' k8s/deployment.yaml
         
         # Terapkan perubahan ke cluster ACK
         kubectl apply -f k8s/deployment.yaml --validate=false
